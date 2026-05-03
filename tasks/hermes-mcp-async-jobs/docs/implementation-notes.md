@@ -1,7 +1,7 @@
 # Implementation notes: Phase 1 async jobs
 
 Date: 2026-05-03
-Status: implemented-pending-service-restart
+Status: implemented-and-live
 
 ## Files changed
 
@@ -63,6 +63,37 @@ Results:
 - Python compile: passed.
 - Import/feature check: `hermes_submit`, `hermes_job_status`, and `hermes_job_result` present.
 
-## Pending
+## Deployment verification
 
-`systemctl restart hermes-mcp` was blocked by command approval, so the running service may not yet have loaded the new tools. Restart the service and then smoke-test MCP tool discovery/calls.
+`systemctl restart hermes-mcp` was approved and completed on 2026-05-03.
+
+Live service after restart:
+
+- Service: `hermes-mcp.service`
+- Main PID after restart: `685556`
+- Active timestamp: `Sun 2026-05-03 17:57:53 UTC`
+- Local health: `http://127.0.0.1:8643/health` returned `200 OK`
+- Local MCP health: `http://127.0.0.1:8643/mcp/health` returned `200 OK`
+
+Live MCP tool discovery now returns all six tools locally and via the public Funnel URL:
+
+- `hermes_ask`
+- `hermes_run_skill`
+- `hermes_submit`
+- `hermes_job_status`
+- `hermes_job_result`
+- `hermes_health`
+
+Async smoke test:
+
+- Submitted job: `hjob_20260503_175828_d2325f52`
+- Tool: `hermes_submit`
+- Followed with `hermes_job_status` polling.
+- Final status: `succeeded`
+- `hermes_job_result` returned: `MCP_ASYNC_SMOKE_OK`
+
+## Remaining follow-ups
+
+- Consider adding `hermes_job_cancel`.
+- Consider retention cleanup for old rows in `/root/hermes-mcp/jobs.sqlite`.
+- Consider Phase 2 deterministic fast-path tools: `selfos_raw_capture`, `taskos_capture`, and `wiki_research_request`.
