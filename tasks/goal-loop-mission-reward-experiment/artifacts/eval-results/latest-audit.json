@@ -1,0 +1,11 @@
+{
+  "missing_files": [],
+  "missing_mission_sections": [],
+  "passed": true,
+  "root": "/data/taskOS/tasks/goal-loop-mission-reward-experiment",
+  "score": {
+    "earned": 16,
+    "percent": 100.0,
+    "possible": 16
+  }
+}

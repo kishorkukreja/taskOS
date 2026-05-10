@@ -1,0 +1,13 @@
+{
+  "missing_files": [
+    "artifacts/goal-buddy-review.md"
+  ],
+  "missing_mission_sections": [],
+  "passed": false,
+  "root": "/data/taskOS/tasks/goal-loop-mission-reward-experiment",
+  "score": {
+    "earned": 15,
+    "percent": 93.8,
+    "possible": 16
+  }
+}
