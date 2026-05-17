@@ -14,6 +14,7 @@ The desired shift is from Self-OS answering only “what did we capture?” to a
 ## Current artifact state
 
 - Idea capture: `docs/idea.md`
+- Multimodal/evidence grounding addendum: `docs/multimodal-memory-layer-llm-wiki.md`
 - Spec: not started
 - PRD: not started
 - Issues: not started
@@ -22,7 +23,9 @@ The desired shift is from Self-OS answering only “what did we capture?” to a
 ## Next conversion step
 
 - [ ] Convert `docs/idea.md` into `docs/spec.md`
+- [ ] Fold `docs/multimodal-memory-layer-llm-wiki.md` into the spec as the evidence-memory / multimodal-grounding layer
 - [ ] Decide v0 scope: `ai-research-os` only vs all wikis
+- [ ] Decide artifact storage convention: global `/data/Self-OS/artifacts/` vs per-wiki `raw/artifacts/`
 - [ ] Create seed memory folder structure and topic pages
 - [ ] Create `compile_memory_tree.py` design/spec
 - [ ] Convert spec into implementation issues

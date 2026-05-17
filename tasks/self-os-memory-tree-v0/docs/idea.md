@@ -24,6 +24,13 @@ The conversation was triggered by reviewing OpenHuman:
 - OpenHuman stores memory locally in SQLite and an Obsidian-style Markdown vault.
 - Hermes recommendation: do not adopt OpenHuman as a new core system now; use it as a strategic reference for Self-OS memory architecture.
 
+Additional source added on 2026-05-17:
+
+- Wiki capture: `/data/Self-OS/wikis/ai-research-os/raw/resources/multimodal-memory-layer-llm-wiki-2026-05-17.md`
+- taskOS addendum: `docs/multimodal-memory-layer-llm-wiki.md`
+- Core heuristic: store the thing, store the meaning, and store the links.
+- Design impact: the memory-tree spec should include multimodal/evidence grounding, evidence pointers, artifact storage conventions, privacy labels, confidence/provenance fields, and intent-routed retrieval.
+
 ## What we are trying to do
 
 Add a Self-OS-native **Memory Tree v0** layer that organizes existing raw captures and operating signals into three levels:
