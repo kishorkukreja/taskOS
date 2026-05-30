@@ -1,0 +1,98 @@
+===== /root/.hermes/scripts/gbrain_sync_self_os.sh =====
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_FILE="/var/log/gbrain-sync.log"
+GBRAIN_BIN="/root/.bun/bin/gbrain"
+SELF_OS_DIR="/data/Self-OS"
+
+export HOME="/root"
+export PATH="/root/.bun/bin:${PATH:-}"
+
+{
+  echo "[$(date -Is)] Starting gbrain sync for ${SELF_OS_DIR} with ${GBRAIN_BIN}"
+  cd "${SELF_OS_DIR}"
+  "${GBRAIN_BIN}" sync --repo "${SELF_OS_DIR}" --strategy code
+  echo "[$(date -Is)] Completed gbrain sync"
+} >> "${LOG_FILE}" 2>&1
+
+===== /root/.hermes/scripts/gbrain_maintenance_self_os.sh =====
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_FILE="/var/log/gbrain-maintenance.log"
+GBRAIN_BIN="/root/.bun/bin/gbrain"
+SELF_OS_DIR="/data/Self-OS"
+
+export HOME="/root"
+export PATH="/root/.bun/bin:${PATH:-}"
+
+log() {
+  printf '[%s] %s\n' "$(date -Is)" "$*" >> "${LOG_FILE}"
+}
+
+run_logged() {
+  log "+ $*"
+  "$@" >> "${LOG_FILE}" 2>&1
+}
+
+run_embedding_refresh() {
+  local tmp
+  tmp="$(mktemp)"
+  log "+ ${GBRAIN_BIN} embed --stale"
+  if "${GBRAIN_BIN}" embed --stale >"${tmp}" 2>&1; then
+    cat "${tmp}" >> "${LOG_FILE}"
+    rm -f "${tmp}"
+    return 0
+  fi
+
+  cat "${tmp}" >> "${LOG_FILE}"
+  if grep -q "OpenAI embedding requires OPENAI_API_KEY" "${tmp}"; then
+    log "soft-block: stale embeddings skipped because OPENAI_API_KEY is not configured for GBrain embeddings"
+    rm -f "${tmp}"
+    return 0
+  fi
+
+  rm -f "${tmp}"
+  return 1
+}
+
+{
+  log "Starting GBrain maintenance for ${SELF_OS_DIR}"
+
+  if [[ ! -x "${GBRAIN_BIN}" ]]; then
+    log "fatal: ${GBRAIN_BIN} not found or not executable"
+    exit 1
+  fi
+  if [[ ! -d "${SELF_OS_DIR}/.git" ]]; then
+    log "fatal: ${SELF_OS_DIR} is not a git repo"
+    exit 1
+  fi
+
+  cd "${SELF_OS_DIR}"
+
+  run_logged "${GBRAIN_BIN}" apply-migrations --yes
+  run_logged "${GBRAIN_BIN}" skillpack check
+  run_embedding_refresh
+  run_logged "${GBRAIN_BIN}" extract links --dir "${SELF_OS_DIR}"
+  run_logged "${GBRAIN_BIN}" extract timeline --dir "${SELF_OS_DIR}"
+  run_logged "${GBRAIN_BIN}" features --json
+
+  log "Completed GBrain maintenance for ${SELF_OS_DIR}"
+} >> "${LOG_FILE}" 2>&1
+
+===== /root/.hermes/profiles/programmer/skills/note-taking/knowledge-base-operations/SKILL.md =====
+## Mode: GBrain-backed Self-OS query/maintenance layer
+
+Use when the user asks about GBrain with Self-OS, "what do we know about X?" for a Self-OS topic, semantic/graph/timeline recall, post-sync health, or GBrain maintenance. Routing rules:
+
+- Self-OS remains canonical for durable/raw source capture: save articles, repos, threads, videos, and interpreted wiki outputs under `/data/Self-OS/wikis/...` first.
+- GBrain is the semantic/search/graph/timeline/health/query layer over Self-OS, not a replacement system of record.
+- For Self-OS-relevant recall or research, query GBrain before web/current research when the answer may already exist locally; use `session_search` instead when the question is about prior conversations.
+- Use direct GBrain capture only for quick thoughts or when explicitly requested; avoid direct GBrain writes for canonical sources until writeback conventions are clear.
+- Sync/maintenance commands must run with `HOME=/root`, `PATH=/root/.bun/bin:$PATH`, and explicit `--repo /data/Self-OS` wherever the command supports it.
+- Current deterministic maintenance scripts: `/root/.hermes/scripts/gbrain_sync_self_os.sh` at 02:00 UTC and `/root/.hermes/scripts/gbrain_maintenance_self_os.sh` at 02:30 UTC in the default Hermes profile.
+- Treat embeddings blocked by missing provider/API key as a documented health gap, not a reason to replace the pipeline; do not run expensive dream/concept-synthesis loops unattended without budget controls.
+- Pilot `article-enrichment` only on selected high-signal captures and `concept-synthesis` weekly/monthly or manually for a focused domain.
+
+

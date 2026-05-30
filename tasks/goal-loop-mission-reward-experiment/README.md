@@ -1,6 +1,6 @@
 # Goal Loop Mission Reward Experiment
 
-Status: in-progress
+Status: blocked
 Created: 2026-05-10
 Source: Self-OS kanban task `t_4e05470f`
 

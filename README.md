@@ -49,16 +49,23 @@ Future optional files:
 
 ## Status values
 
-Use one of:
+Every open project must use one of these statuses:
 
-- `captured` — idea saved, not yet shaped.
-- `ready-for-spec` — enough context to draft a spec/PRD.
-- `specified` — spec/PRD exists.
-- `ready-for-issues` — ready to split into implementation issues.
-- `ready-for-implementation` — issues/plan ready for Codex or another coding agent.
-- `in-progress`
-- `blocked`
-- `done`
+- `backlog` — captured or shaped, but not actively being worked.
+- `in-progress` — actively being touched now.
+- `blocked` — cannot move without a decision, dependency, review, or renewed attention.
+
+Terminal status:
+
+- `done` — complete and no longer open.
+
+Weekly audit rule: nothing stays `in-progress` if it has not been touched in 7 days. The status audit auto-downgrades stale `in-progress` tasks to `blocked` so drift becomes visible instead of invisible.
+
+Run manually:
+
+```bash
+python3 scripts/status_audit.py --repo /data/taskOS
+```
 
 ## Current tasks
 

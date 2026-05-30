@@ -1,6 +1,6 @@
 # Self-OS Memory Tree v0
 
-Status: captured
+Status: backlog
 Created: 2026-05-17
 Owner: Kish / Hermes
 Priority: high

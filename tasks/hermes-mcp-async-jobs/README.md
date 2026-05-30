@@ -1,6 +1,6 @@
 # Hermes MCP Async Jobs
 
-Status: captured
+Status: backlog
 Created: 2026-05-03
 Owner: Kish / Hermes
 Priority: high-reliability

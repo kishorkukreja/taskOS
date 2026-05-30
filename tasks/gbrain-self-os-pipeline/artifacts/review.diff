@@ -1,0 +1,252 @@
+# /data/Self-OS diff
+diff --git a/scripts/generate_self_os_brief.py b/scripts/generate_self_os_brief.py
+index 14808d5..3b8e7fb 100755
+--- a/scripts/generate_self_os_brief.py
++++ b/scripts/generate_self_os_brief.py
+@@ -26,6 +26,9 @@ DEFAULT_OUTPUT_ROOT = REPO / "wikis/coding-projects-os/raw/projects/self-os-oper
+ CONTRACT_PATH = REPO / "docs/self-os-operating-contract.md"
+ RAW_ROOT = REPO / "wikis"
+ GITHUB_PULLS_URL = "https://api.github.com/repos/kishorkukreja/Self-OS/pulls?state=open&per_page=20"
++GBRAIN_BIN = Path("/root/.bun/bin/gbrain")
++GBRAIN_ENV_HOME = "/root"
++GBRAIN_ENV_PATH_PREFIX = "/root/.bun/bin"
+ 
+ 
+ def run(cmd: list[str], cwd: Path = REPO, timeout: int = 30) -> tuple[int, str]:
+@@ -57,6 +60,13 @@ def code_or_none(text: str, empty: str = "None.") -> str:
+     return "```text\n" + text.strip() + "\n```"
+ 
+ 
++def one_line(value: object, limit: int = 96) -> str:
++    text = re.sub(r"\s+", " ", str(value)).strip()
++    if len(text) <= limit:
++        return text
++    return text[: max(0, limit - 3)].rstrip() + "..."
++
++
+ def utc_now() -> dt.datetime:
+     return dt.datetime.now(dt.timezone.utc)
+ 
+@@ -145,6 +155,85 @@ def load_cron_snapshot(path: str | None) -> tuple[list[str], list[str]]:
+     return rows, failures
+ 
+ 
++def gbrain_features_status(limit: int = 5) -> tuple[list[str], str, str | None]:
++    """Return compact GBrain feature health without leaking command output.
++
++    The brief is canonical Self-OS output, so GBrain is treated as an optional
++    local signal. Missing, unconfigured, timed out, or malformed GBrain state
++    must produce a clear note rather than fail brief generation.
++    """
++    if not GBRAIN_BIN.exists():
++        note = f"GBrain unavailable: `{GBRAIN_BIN}` not found."
++        return [note], "GBrain: unavailable; binary not found.", note
++
++    env = os.environ.copy()
++    env["HOME"] = GBRAIN_ENV_HOME
++    current_path = env.get("PATH", "")
++    env["PATH"] = f"{GBRAIN_ENV_PATH_PREFIX}:{current_path}" if current_path else GBRAIN_ENV_PATH_PREFIX
++
++    try:
++        proc = subprocess.run(
++            [str(GBRAIN_BIN), "features", "--json"],
++            cwd=str(REPO),
++            env=env,
++            text=True,
++            stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE,
++            timeout=30,
++            check=False,
++        )
++    except subprocess.TimeoutExpired:
++        note = "GBrain unavailable: features scan timed out."
++        return [note], "GBrain: unavailable; features scan timed out.", note
++    except Exception as exc:  # pragma: no cover - defensive CLI output
++        note = f"GBrain unavailable: features scan could not start ({type(exc).__name__})."
++        return [note], "GBrain: unavailable; features scan could not start.", note
++
++    if proc.returncode != 0:
++        note = f"GBrain unavailable: features scan exited {proc.returncode}; check local GBrain config."
++        return [note], f"GBrain: unavailable; features scan exited {proc.returncode}.", note
++
++    try:
++        data = json.loads(proc.stdout)
++    except json.JSONDecodeError:
++        note = "GBrain unavailable: features scan returned unreadable JSON."
++        return [note], "GBrain: unavailable; unreadable features JSON.", note
++
++    if not isinstance(data, dict):
++        note = "GBrain unavailable: features scan returned unexpected JSON shape."
++        return [note], "GBrain: unavailable; unexpected features JSON.", note
++
++    score = data.get("brain_score")
++    score_text = str(score) if isinstance(score, (int, float, str)) and str(score).strip() else "unknown"
++    rows = [f"brain_score: `{one_line(score_text, 24)}/100`"]
++
++    recommendations = data.get("recommendations", [])
++    compact_recs: list[str] = []
++    if isinstance(recommendations, list):
++        parsed: list[tuple[str, str, int]] = []
++        for rec in recommendations:
++            if not isinstance(rec, dict):
++                continue
++            rec_id = one_line(rec.get("id", "unknown"), 48)
++            title = one_line(rec.get("title", "Untitled recommendation"), 80)
++            priority_raw = rec.get("priority", 99)
++            priority = priority_raw if isinstance(priority_raw, int) else 99
++            parsed.append((rec_id, title, priority))
++        for rec_id, title, _priority in sorted(parsed, key=lambda item: (item[2], item[0], item[1]))[:limit]:
++            compact_recs.append(f"`{rec_id}`: {title}")
++
++    if compact_recs:
++        rows.append("recommendations: " + "; ".join(compact_recs))
++        extra = len(recommendations) - len(compact_recs) if isinstance(recommendations, list) else 0
++        if extra > 0:
++            rows[-1] += f"; +{extra} more"
++    else:
++        rows.append("recommendations: none")
++
++    summary_recs = ", ".join(rec.replace("`", "") for rec in compact_recs[:3]) or "no recommendations"
++    return rows, f"GBrain: score {score_text}/100; {summary_recs}.", None
++
++
+ def pending_requests(limit: int = 20) -> list[str]:
+     rows: list[str] = []
+     for req_dir in RAW_ROOT.glob("*/raw/requests"):
+@@ -402,6 +491,7 @@ def build_brief(kind: str, cron_snapshot: str | None) -> tuple[str, str, Path]:
+     thinking_connections, thinking_pattern, thinking_question = build_thinking_loop(recent_raw + recent_plans, since)
+     prs, pr_error = github_open_prs()
+     cron_rows, cron_failures = load_cron_snapshot(cron_snapshot)
++    gbrain_rows, gbrain_summary, gbrain_health = gbrain_features_status()
+     pending = pending_requests()
+     raw_counts = unprocessed_raw_counts()
+ 
+@@ -413,6 +503,8 @@ def build_brief(kind: str, cron_snapshot: str | None) -> tuple[str, str, Path]:
+     if pr_error:
+         health.append(pr_error)
+     health.extend(cron_failures)
++    if gbrain_health:
++        health.append(gbrain_health)
+     if not health:
+         health.append("No blocking health issue detected by local collector.")
+ 
+@@ -530,6 +622,10 @@ source: scripts/generate_self_os_brief.py
+ 
+ {bullet(cron_rows, "Cron snapshot not injected. Hermes skill wrapper should add this later.")}
+ 
++### GBrain status
++
++{bullet(gbrain_rows, "GBrain status not available.")}
++
+ ### Detected health notes
+ 
+ {bullet(health)}
+@@ -559,6 +655,7 @@ Use this daily brief's Thinking Loop to choose one route: create a wiki synthesi
+         f"Self-OS {kind.title()} Brief — {date_slug}",
+         f"- State: {'dirty working tree' if status.strip() else 'repo clean at collection time'}; {len(prs)} open PR(s); {len(pending)} pending request candidate(s).",
+         f"- {wiki_digest_summary}",
++        f"- {gbrain_summary}",
+         f"- Recent files detected: {len(recent_raw) + len(recent_plans)} markdown file(s) in last 24h.",
+         f"- Thinking Loop: {thinking_pattern}",
+         f"- Question: {thinking_question}",
+
+# /data/taskOS diff
+diff --git a/tasks/gbrain-self-os-pipeline/README.md b/tasks/gbrain-self-os-pipeline/README.md
+index 0c4a660..a9553b6 100644
+--- a/tasks/gbrain-self-os-pipeline/README.md
++++ b/tasks/gbrain-self-os-pipeline/README.md
+@@ -1,6 +1,6 @@
+ # GBrain Self-OS Pipeline Integration
+ 
+-Status: captured
++Status: implemented-awaiting-review
+ Created: 2026-05-23
+ Owner: Kish / Hermes
+ Priority: high
+@@ -16,10 +16,11 @@ The goal is not to adopt every scaffolded GBrain skill. The goal is to operation
+ - Skill survey: `docs/gbrain-skill-survey.md`
+ - Setup plan: `docs/setup-plan.md`
+ - Idea capture: `docs/idea.md`
++- Implementation log: `docs/implementation-log.md`
+ - Spec: not started
+ - PRD: not started
+ - Issues: not started
+-- Implementation plan: not started
++- Implementation plan: completed as direct operational setup; see implementation log
+ 
+ ## High-value GBrain skills to integrate
+ 
+@@ -55,13 +56,13 @@ Capture
+ 
+ ## Next conversion step
+ 
+-- [ ] Convert `docs/idea.md` and `docs/setup-plan.md` into a concrete implementation spec.
+-- [ ] Fix GBrain health foundation: migrations, embeddings, link extraction, timeline extraction.
+-- [ ] Add post-sync maintenance cron after the existing GBrain sync job.
+-- [ ] Patch/create Hermes operating guidance so agents query GBrain before web/current research when relevant.
++- [x] Convert `docs/idea.md` and `docs/setup-plan.md` into a concrete implementation spec/log.
++- [x] Fix GBrain health foundation: migrations applied; sync/link/timeline extraction run; embeddings explicitly blocked by missing provider key.
++- [x] Add post-sync maintenance cron after the existing GBrain sync job.
++- [x] Patch/create Hermes operating guidance so agents query GBrain before web/current research when relevant.
+ - [ ] Pilot `article-enrichment` on selected high-signal captures.
+ - [ ] Pilot weekly/monthly `concept-synthesis` for Self-OS memory tree.
+-- [ ] Add GBrain status to Self-OS daily/evening operating brief.
++- [x] Add GBrain status to Self-OS daily/evening operating brief.
+ 
+ ## Linked runtime state
+ 
+
+# /data/taskOS untracked implementation log
+diff --git a/tasks/gbrain-self-os-pipeline/docs/implementation-log.md b/tasks/gbrain-self-os-pipeline/docs/implementation-log.md
+new file mode 100644
+index 0000000..fd3be3d
+--- /dev/null
++++ b/tasks/gbrain-self-os-pipeline/docs/implementation-log.md
+@@ -0,0 +1,47 @@
++# Implementation Log — GBrain Self-OS Pipeline
++
++Updated: 2026-05-23T22:14:14Z
++
++## Completed
++
++- Verified GBrain service is active at `http://127.0.0.1:8650/health` and version is `0.40.6.0`.
++- Fixed local CLI execution context for GBrain by using `HOME=/root` and `PATH=/root/.bun/bin:$PATH`.
++- Applied pending migrations with `/root/.bun/bin/gbrain apply-migrations --yes`.
++- Re-ran `/root/.bun/bin/gbrain sync --repo /data/Self-OS --strategy code` through the existing sync script.
++- Ran stale embedding refresh; it remains blocked by missing OpenAI embedding provider configuration (`OPENAI_API_KEY`). This is a documented health gap rather than a pipeline failure.
++- Ran link extraction and timeline extraction over `/data/Self-OS`.
++- Added deterministic post-sync maintenance script: `/root/.hermes/scripts/gbrain_maintenance_self_os.sh`.
++- Patched existing sync script to set `HOME=/root` and prepend `/root/.bun/bin` to `PATH`: `/root/.hermes/scripts/gbrain_sync_self_os.sh`.
++- Added default-profile Hermes cron job `41c10103d219` (`gbrain-maintenance-after-sync`) at `02:30 UTC`, after the existing `02:00 UTC` sync job.
++- Patched Hermes `knowledge-base-operations` guidance with a GBrain-backed Self-OS query/maintenance mode.
++- Updated `/data/Self-OS/scripts/generate_self_os_brief.py` to include compact GBrain status in daily/evening brief markdown and Telegram summaries.
++
++## Current GBrain health
++
++Latest `gbrain features --json` result after maintenance:
++
++- `brain_score`: 80
++- Remaining recommendations:
++  - `missing-embeddings`: blocked by missing embedding provider/API key.
++  - `zero-timeline`: extraction ran successfully but found zero structured timeline entries from current files.
++  - `no-integrations`: deferred; integrations are not in this task's core scope.
++- `zero-links` cleared from recommendations after extraction.
++
++## Cron shape
++
++```text
++02:00 UTC — gbrain-sync-after-wiki-compile
++  script: gbrain_sync_self_os.sh
++  command includes: gbrain sync --repo /data/Self-OS --strategy code
++
++02:30 UTC — gbrain-maintenance-after-sync
++  script: gbrain_maintenance_self_os.sh
++  deterministic no-agent job; stdout is empty on success
++  phases: migrations, skillpack check, stale embeddings, links, timeline, features report
++```
++
++## Deferred / human-review choices
++
++- Configure an embedding provider/API key for unattended embeddings, or accept keyword/search-only until needed.
++- Decide whether timeline extraction needs content conventions/frontmatter changes or whether zero structured entries is acceptable for now.
++- Keep `article-enrichment` and `concept-synthesis` as selective/manual pilots; do not enable broad unattended synthesis loops without budget controls.

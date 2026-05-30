@@ -1,6 +1,6 @@
 # Self-OS Compound Engineering Methodology
 
-Status: captured
+Status: backlog
 Created: 2026-05-04
 Owner: Kish / Hermes
 Priority: high

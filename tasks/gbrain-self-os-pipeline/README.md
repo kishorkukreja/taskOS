@@ -1,6 +1,6 @@
 # GBrain Self-OS Pipeline Integration
 
-Status: captured
+Status: backlog
 Created: 2026-05-23
 Owner: Kish / Hermes
 Priority: high
@@ -16,10 +16,11 @@ The goal is not to adopt every scaffolded GBrain skill. The goal is to operation
 - Skill survey: `docs/gbrain-skill-survey.md`
 - Setup plan: `docs/setup-plan.md`
 - Idea capture: `docs/idea.md`
+- Implementation log: `docs/implementation-log.md`
 - Spec: not started
 - PRD: not started
 - Issues: not started
-- Implementation plan: not started
+- Implementation plan: completed as direct operational setup; see implementation log
 
 ## High-value GBrain skills to integrate
 
@@ -55,13 +56,13 @@ Capture
 
 ## Next conversion step
 
-- [ ] Convert `docs/idea.md` and `docs/setup-plan.md` into a concrete implementation spec.
-- [ ] Fix GBrain health foundation: migrations, embeddings, link extraction, timeline extraction.
-- [ ] Add post-sync maintenance cron after the existing GBrain sync job.
-- [ ] Patch/create Hermes operating guidance so agents query GBrain before web/current research when relevant.
+- [x] Convert `docs/idea.md` and `docs/setup-plan.md` into a concrete implementation spec/log.
+- [x] Fix GBrain health foundation: migrations applied; sync/link/timeline extraction run; embeddings explicitly blocked by missing provider key.
+- [x] Add post-sync maintenance cron after the existing GBrain sync job.
+- [x] Patch/create Hermes operating guidance so agents query GBrain before web/current research when relevant.
 - [ ] Pilot `article-enrichment` on selected high-signal captures.
 - [ ] Pilot weekly/monthly `concept-synthesis` for Self-OS memory tree.
-- [ ] Add GBrain status to Self-OS daily/evening operating brief.
+- [x] Add GBrain status to Self-OS daily/evening operating brief.
 
 ## Linked runtime state
 

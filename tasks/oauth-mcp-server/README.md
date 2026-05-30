@@ -1,6 +1,6 @@
 # OAuth for Hermes MCP Server
 
-Status: captured
+Status: backlog
 Created: 2026-05-03
 Owner: Kish / Hermes
 Priority: high-security-before-production

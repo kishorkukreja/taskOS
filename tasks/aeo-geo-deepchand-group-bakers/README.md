@@ -1,6 +1,6 @@
 # AEO/GEO for Deepchand Group and Deepchand Bakers
 
-Status: captured
+Status: backlog
 Created: 2026-05-09
 Owner: Kish / Hermes
 Priority: TBD

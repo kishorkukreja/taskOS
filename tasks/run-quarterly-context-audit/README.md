@@ -1,5 +1,7 @@
 # Run Quarterly Context Audit — August 2026
 
+Status: backlog
+
 **Status:** backlog
 **Priority:** medium
 **Created:** 2026-05-21
