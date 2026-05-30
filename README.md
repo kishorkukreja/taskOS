@@ -59,12 +59,22 @@ Terminal status:
 
 - `done` — complete and no longer open.
 
-Weekly audit rule: nothing stays `in-progress` if it has not been touched in 7 days. The status audit auto-downgrades stale `in-progress` tasks to `blocked` so drift becomes visible instead of invisible.
+Weekly audit rule: nothing stays `in-progress` if it has not been touched in 7 days. The status audit proposes stale `in-progress` tasks for downgrade to `blocked` so drift becomes visible instead of invisible.
+
+Human review contract:
+
+- Weekly audit results are sent to Telegram for review before status changes are applied.
+- If there is no reply within 48 hours, the original audit result is kept and applied.
+- If a status change is challenged, Hermes should push back until the evidence/rationale is strong enough that both sides agree, then make the shift.
 
 Run manually:
 
 ```bash
-python3 scripts/status_audit.py --repo /data/taskOS
+# Propose changes and save a pending review file.
+python3 scripts/status_audit.py --repo /data/taskOS --propose --review-hours 48
+
+# Apply expired pending proposals.
+python3 scripts/status_audit.py --repo /data/taskOS --finalize-pending --commit
 ```
 
 ## Current tasks
