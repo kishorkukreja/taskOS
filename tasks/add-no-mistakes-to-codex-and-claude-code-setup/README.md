@@ -8,7 +8,7 @@ Status: backlog
 **Source:** https://github.com/kunchenguid/no-mistakes
 **Wiki:** /data/Self-OS/wikis/ai-research-os/raw/repos/2026-06-09-kunchenguid-no-mistakes.md
 **Wiki commit:** 62ad593d6b1ed2bf16dd3f2f23d7eef19283a3fe
-**Kanban:** pending
+**Kanban:** t_0be3cc4b
 
 ## What we are trying to do
 
