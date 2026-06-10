@@ -1,6 +1,6 @@
 # Next.js Website — Markdown / JSON CMS Migration
 
-Status: captured
+Status: backlog
 Created: 2026-06-02
 Owner: Kish / Hermes
 Priority: medium
